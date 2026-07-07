@@ -3,3 +3,5 @@ data/
 uploads/
 *.log
 .claude/
+DEPLOYMENT_CREDENTIALS.md
+.env
