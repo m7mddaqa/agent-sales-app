@@ -1,0 +1,54 @@
+/* Phone layout. Agents mostly use this app in the field, so this file gets
+   its own pass: bottom-sheet modals, bigger tap targets and a compact top bar. */
+
+@media (max-width: 680px) {
+  /* 16px stops iOS Safari from zooming in when an input gets focus */
+  input, select, textarea { font-size: 16px; }
+
+  .topbar { padding: .5rem .7rem; gap: .5rem; }
+  .brand-name { display: none; }
+  .user-name { display: none; }
+  .user-chip { padding: .22rem; }
+  [dir="rtl"] .user-chip { padding: .22rem; }
+  .tabs { order: 3; width: 100%; justify-content: space-around; }
+  .tabs button { flex-direction: column; gap: .15rem; font-size: .72rem; padding: .35rem .6rem; }
+
+  /* extra bottom padding so the cart button never covers the last row */
+  .page { padding: .75rem .75rem 5.5rem; }
+
+  .product-grid { grid-template-columns: repeat(2, 1fr); gap: .6rem; }
+  .load-more .btn { width: 100%; }
+
+  /* search takes its own row; dropdowns and dates wrap two per row below it */
+  .filter-bar .search-box { flex-basis: 100%; }
+  .filter-bar select { flex: 1 1 40%; }
+  .filter-bar input[type="date"] { flex: 1 1 40%; }
+
+  /* modals and drawers become bottom sheets */
+  .overlay { padding: 0; place-items: end center; }
+  .drawer, .modal, .modal.wide {
+    max-width: none;
+    max-height: 92vh;
+    border-radius: 18px 18px 0 0;
+    padding: 1.1rem 1rem calc(1.1rem + env(safe-area-inset-bottom));
+  }
+
+  .form-grid { grid-template-columns: 1fr; }
+  .form-grid .span2 { grid-column: span 1; }
+  .cart-line-fields { grid-template-columns: 1fr 1fr; }
+
+  .cart-fab { bottom: calc(1rem + env(safe-area-inset-bottom)); }
+
+  /* orders: swap the wide table for cards */
+  .orders-cards { display: flex; flex-direction: column; gap: .6rem; }
+  .orders-table { display: none; }
+
+  th, td { padding: .5rem .55rem; font-size: .84rem; }
+  /* table action buttons need to be tappable with a thumb */
+  .row-actions .btn.small { padding: .45rem .75rem; }
+
+  .stat { padding: .85rem .9rem; }
+  .stat-num { font-size: 1.15rem; }
+  .subtabs { width: 100%; }
+  .subtabs button { flex: 1; padding: .42rem .4rem; }
+}

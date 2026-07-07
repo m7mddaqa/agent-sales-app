@@ -1,0 +1,19 @@
+{
+  "name": "agent-sales-app",
+  "version": "1.0.0",
+  "description": "Order management app for sales agents: products, orders, discounts, stock, reports, admin panel, Excel import/export",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.2.8",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^11.10.0",
+    "exceljs": "^4.4.0",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "multer": "^2.2.0",
+    "vue": "^3.5.39"
+  }
+}

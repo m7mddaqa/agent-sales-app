@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Sales</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Cpath d='M9 11h14l-1.5 8h-11z' fill='none' stroke='white' stroke-width='2' stroke-linejoin='round'/%3E%3Ccircle cx='12.5' cy='23' r='1.8' fill='white'/%3E%3Ccircle cx='19.5' cy='23' r='1.8' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/layout.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/catalog.css">
+<link rel="stylesheet" href="/css/reports.css">
+<link rel="stylesheet" href="/css/mobile.css">
+</head>
+<body>
+<div id="app" v-cloak :dir="t.dir">
+
+  <!-- ============ LOGIN ============ -->
+  <div v-if="!user" class="login-wrap">
+    <form class="login-card" @submit.prevent="doLogin">
+      <div class="login-logo">
+        <svg viewBox="0 0 32 32" width="56" height="56"><rect width="32" height="32" rx="8" fill="url(#lg)"/><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#4338ca"/></linearGradient></defs><path d="M9 11h14l-1.5 8h-11z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/><circle cx="12.5" cy="23" r="1.8" fill="white"/><circle cx="19.5" cy="23" r="1.8" fill="white"/></svg>
+      </div>
+      <h1>{{ t.appTitle }}</h1>
+      <div class="lang-row">
+        <button type="button" v-for="(l, code) in langs" :key="code"
+                :class="['lang-btn', { on: lang === code }]" @click="setLang(code)">{{ l }}</button>
+      </div>
+      <label>{{ t.username }}<input v-model="loginForm.username" autocomplete="username" required></label>
+      <label>{{ t.password }}<input v-model="loginForm.password" type="password" autocomplete="current-password" required></label>
+      <p v-if="loginError" class="err">{{ t.badCredentials }}</p>
+      <button class="btn primary block lg" :disabled="busy">{{ t.login }}</button>
+    </form>
+  </div>
+
+  <!-- ============ APP SHELL ============ -->
+  <template v-else>
+    <header class="topbar">
+      <span class="brand">
+        <svg viewBox="0 0 32 32" width="30" height="30"><rect width="32" height="32" rx="8" fill="url(#bg1)"/><defs><linearGradient id="bg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#4338ca"/></linearGradient></defs><path d="M9 11h14l-1.5 8h-11z" fill="none" stroke="white" stroke-width="2" stroke-linejoin="round"/><circle cx="12.5" cy="23" r="1.8" fill="white"/><circle cx="19.5" cy="23" r="1.8" fill="white"/></svg>
+        <span class="brand-name">{{ t.appTitle }}</span>
+      </span>
+      <nav class="tabs">
+        <button :class="{ on: view === 'products' }" @click="go('products')">
+          <svg viewBox="0 0 24 24"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8zM12 3.5L19 8l-7 4-7-4 7-4.5z" fill="currentColor" opacity=".9"/><path d="M3 8l9 5 9-5M12 13v8" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+          {{ t.products }}</button>
+        <button :class="{ on: view === 'orders' }" @click="go('orders')">
+          <svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 011 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M9 8h6M9 12h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          {{ t.orders }}</button>
+        <button :class="{ on: view === 'customers' }" @click="go('customers')">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.4" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M3 20c0-3.2 2.7-5.2 6-5.2s6 2 6 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M16 5.4a3.4 3.4 0 010 5.9M18.5 15.2c1.8.8 2.9 2.4 2.9 4.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          {{ t.customers }}</button>
+        <button :class="{ on: view === 'reports' }" @click="go('reports')">
+          <svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+          {{ t.reports }}</button>
+        <button v-if="isAdmin" :class="{ on: view === 'admin' }" @click="go('admin')">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.6 1.6 0 00.3 1.7l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.6 1.6 0 00-1.7-.3 1.6 1.6 0 00-1 1.5V21a2 2 0 11-4 0v-.2a1.6 1.6 0 00-1-1.5 1.6 1.6 0 00-1.7.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.6 1.6 0 00.3-1.7 1.6 1.6 0 00-1.5-1H3a2 2 0 110-4h.2a1.6 1.6 0 001.5-1 1.6 1.6 0 00-.3-1.7l-.1-.1a2 2 0 112.8-2.8l.1.1a1.6 1.6 0 001.7.3h.1a1.6 1.6 0 001-1.5V3a2 2 0 114 0v.2a1.6 1.6 0 001 1.5h.1a1.6 1.6 0 001.7-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.6 1.6 0 00-.3 1.7v.1a1.6 1.6 0 001.5 1h.2a2 2 0 110 4h-.2a1.6 1.6 0 00-1.5 1z" fill="none" stroke="currentColor" stroke-width="1.5"/></svg>
+          {{ t.admin }}</button>
+      </nav>
+      <div class="top-actions">
+        <select class="lang-select" :value="lang" @change="setLang($event.target.value)">
+          <option v-for="(l, code) in langs" :key="code" :value="code">{{ l }}</option>
+        </select>
+        <button class="user-chip" @click="showPwd = true" :title="t.changePassword">
+          <span class="avatar">{{ user.name.slice(0, 1).toUpperCase() }}</span>
+          <span class="user-name">{{ user.name }}</span>
+        </button>
+        <button class="btn ghost" @click="doLogout">{{ t.logout }}</button>
+      </div>
+    </header>
+
+    <!-- ============ PRODUCTS ============ -->
+    <main v-if="view === 'products'" class="page">
+      <div class="filter-bar card-flat">
+        <div class="search-box grow">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input v-model="pf.search" :placeholder="t.search" @input="debouncedProducts">
+        </div>
+        <select v-model="pf.category_id" @change="loadProducts">
+          <option value="">{{ t.allCategories }}</option>
+          <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ (c.depth ? '   › ' : '') + c.label }}</option>
+        </select>
+        <select v-model="pf.in_stock" @change="loadProducts">
+          <option value="">{{ t.stockFilter }}: {{ t.all }}</option>
+          <option value="1">{{ t.inStock }}</option>
+          <option value="0">{{ t.outOfStock }}</option>
+        </select>
+        <select v-model="pf.sort" @change="loadProducts">
+          <option value="name">{{ t.sortBy }}: {{ t.name }}</option>
+          <option value="price">{{ t.price }}</option>
+          <option value="stock">{{ t.stock }}</option>
+          <option value="sku">{{ t.sku }}</option>
+          <option value="created">{{ t.newest }}</option>
+        </select>
+        <button class="btn ghost icon-btn" @click="pf.dir = pf.dir === 'asc' ? 'desc' : 'asc'; loadProducts()" :title="pf.dir === 'asc' ? t.asc : t.desc">
+          {{ pf.dir === 'asc' ? '↑' : '↓' }}
+        </button>
+      </div>
+
+      <div v-if="!products.length" class="empty-state">
+        <div class="empty-icon">🔍</div><p>{{ t.noResults }}</p>
+      </div>
+      <div class="product-grid">
+        <div v-for="p in products" :key="p.id" class="card product-card">
+          <div class="pimg">
+            <img v-if="p.image" :src="p.image" loading="lazy" :alt="p.name">
+            <svg v-else viewBox="0 0 24 24" class="pimg-ph"><path d="M21 8l-9-5-9 5v8l9 5 9-5V8z" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M3 8l9 5 9-5M12 13v8" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>
+            <span v-if="p.discount_pct > 0" class="badge sale">-{{ p.discount_pct }}%</span>
+          </div>
+          <div class="pbody">
+            <div class="psku">{{ p.sku }}<span v-if="p.category_name" class="pcat">{{ p.category_name }}</span></div>
+            <div class="pname">{{ p.name }}</div>
+            <div class="pprice">
+              <template v-if="p.discount_pct > 0">
+                <s class="muted">{{ money(p.price) }}</s>
+                <b>{{ money(p.price * (1 - p.discount_pct / 100)) }}</b>
+              </template>
+              <b v-else>{{ money(p.price) }}</b>
+            </div>
+            <div :class="['pstock', p.stock <= 0 ? 'out' : p.stock <= 5 ? 'low' : '']">
+              <span class="dot"></span>{{ t.stockShort }}: {{ p.stock }}
+            </div>
+            <button class="btn primary block" :disabled="p.stock <= 0" @click="addToCart(p)">
+              {{ p.stock <= 0 ? t.outOfStock : '+ ' + t.addToCart }}
+            </button>
+          </div>
+        </div>
+      </div>
+      <div v-if="products.length < productsTotal" class="load-more">
+        <button class="btn" @click="loadProducts(true)">{{ t.showMore }} ({{ products.length }} / {{ productsTotal }})</button>
+      </div>
+
+      <button v-if="cart.length" class="cart-fab" @click="showCart = true">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path d="M4 6h2l2.4 10h9.6l2-7H7" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/><circle cx="10" cy="20" r="1.6" fill="currentColor"/><circle cx="17" cy="20" r="1.6" fill="currentColor"/></svg>
+        {{ cart.length }} · {{ money(cartTotal) }}
+      </button>
+
+      <!-- cart drawer -->
+      <div v-if="showCart" class="overlay" @click.self="showCart = false">
+        <div class="drawer">
+          <div class="drawer-head"><h2>{{ t.cart }}</h2><button class="x" @click="showCart = false">✕</button></div>
+          <p v-if="!cart.length" class="muted center">{{ t.emptyCart }}</p>
+          <div v-for="(it, i) in cart" :key="it.product_id" class="cart-line">
+            <div class="cart-line-top">
+              <b>{{ it.name }}</b>
+              <button class="x small" @click="cart.splice(i, 1)">✕</button>
+            </div>
+            <div class="cart-line-fields">
+              <label>{{ t.qty }}<input type="number" min="1" :max="it.max_stock" v-model.number="it.qty"></label>
+              <label>{{ t.unitPrice }}<input type="number" min="0" step="0.01" v-model.number="it.unit_price"></label>
+              <label>{{ t.discount }}<input type="number" min="0" max="100" step="0.5" v-model.number="it.discount_pct"></label>
+            </div>
+            <div class="cart-line-total">{{ t.lineTotal }}: <b>{{ money(lineTotal(it)) }}</b></div>
+          </div>
+          <template v-if="cart.length">
+            <div class="grand">{{ t.grandTotal }}: <b>{{ money(cartTotal) }}</b></div>
+            <label>{{ t.customer }}
+              <select v-model="orderForm.customer_id">
+                <option value="">＋ {{ t.newCustomer }}</option>
+                <option v-for="c in customers" :key="c.id" :value="c.id">{{ c.name }}{{ c.phone ? ' · ' + c.phone : '' }}</option>
+              </select>
+            </label>
+            <template v-if="!orderForm.customer_id">
+              <label>{{ t.customerName }}<input v-model="orderForm.customer_name"></label>
+              <label>{{ t.customerPhone }}<input v-model="orderForm.customer_phone"></label>
+            </template>
+            <label>{{ t.notes }}<textarea v-model="orderForm.notes" rows="2"></textarea></label>
+            <button class="btn primary block lg" :disabled="busy" @click="placeOrder">{{ t.placeOrder }}</button>
+          </template>
+        </div>
+      </div>
+    </main>
+
+    <!-- ============ ORDERS ============ -->
+    <main v-if="view === 'orders'" class="page">
+      <div class="filter-bar card-flat">
+        <div class="search-box grow">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input v-model="of.search" :placeholder="t.search" @input="debouncedOrders">
+        </div>
+        <select v-model="of.status" @change="loadOrders">
+          <option value="">{{ t.allStatuses }}</option>
+          <option v-for="s in statuses" :key="s" :value="s">{{ t[s] }}</option>
+        </select>
+        <select v-if="isAdmin" v-model="of.agent_id" @change="loadOrders">
+          <option value="">{{ t.allAgents }}</option>
+          <option v-for="a in agents" :key="a.id" :value="a.id">{{ a.name }}</option>
+        </select>
+        <input type="date" v-model="of.from" @change="loadOrders" :title="t.from">
+        <input type="date" v-model="of.to" @change="loadOrders" :title="t.to">
+        <button class="btn ghost" @click="exportOrders">⬇ {{ t.exportExcel }}</button>
+      </div>
+
+      <div v-if="!orders.length" class="empty-state">
+        <div class="empty-icon">🧾</div><p>{{ t.noOrders }}</p>
+      </div>
+      <div v-else>
+        <!-- phones get tappable cards instead of the wide table -->
+        <div class="orders-cards">
+          <div v-for="o in orders" :key="'c' + o.id" class="card order-card" @click="openOrder(o.id)">
+            <div class="order-card-top">
+              <span class="mono">#{{ o.order_no }}</span>
+              <span :class="['badge', 'st-' + o.status]"><span class="dot"></span>{{ t[o.status] }}</span>
+            </div>
+            <div class="order-card-mid">
+              <span>{{ o.customer_name || '—' }}</span>
+              <b>{{ money(o.total) }}</b>
+            </div>
+            <div class="order-card-sub muted">
+              {{ fmtDate(o.created_at) }} · {{ o.item_count }} {{ t.items }}<template v-if="isAdmin"> · {{ o.agent_name }}</template>
+            </div>
+          </div>
+        </div>
+        <div class="card table-wrap orders-table">
+          <table>
+            <thead><tr>
+              <th class="clickable" @click="sortOrders('created')">{{ t.date }} {{ sortArrow('created') }}</th>
+              <th>{{ t.orderNo }}</th>
+              <th v-if="isAdmin" class="clickable" @click="sortOrders('agent')">{{ t.agent }} {{ sortArrow('agent') }}</th>
+              <th>{{ t.customer }}</th>
+              <th class="clickable" @click="sortOrders('status')">{{ t.status }} {{ sortArrow('status') }}</th>
+              <th>{{ t.items }}</th>
+              <th class="clickable" @click="sortOrders('total')">{{ t.total }} {{ sortArrow('total') }}</th>
+              <th></th>
+            </tr></thead>
+            <tbody>
+              <tr v-for="o in orders" :key="o.id" class="rowlink" @click="openOrder(o.id)">
+                <td>{{ fmtDate(o.created_at) }}</td>
+                <td class="mono">#{{ o.order_no }}</td>
+                <td v-if="isAdmin">{{ o.agent_name }}</td>
+                <td>{{ o.customer_name || '—' }}</td>
+                <td><span :class="['badge', 'st-' + o.status]"><span class="dot"></span>{{ t[o.status] }}</span></td>
+                <td>{{ o.item_count }}</td>
+                <td><b>{{ money(o.total) }}</b></td>
+                <td class="row-actions"><button class="btn small" @click.stop="openOrder(o.id)">{{ t.view }}</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ============ CUSTOMERS ============ -->
+    <main v-if="view === 'customers'" class="page">
+      <div class="filter-bar card-flat">
+        <div class="search-box grow">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <input v-model="cf.search" :placeholder="t.search" @input="debouncedCustomers">
+        </div>
+        <button class="btn ghost" @click="exportCustomers">⬇ {{ t.exportExcel }}</button>
+        <button class="btn primary" @click="openCustomerForm()">+ {{ t.newCustomer }}</button>
+      </div>
+
+      <div v-if="!customersList.length" class="empty-state">
+        <div class="empty-icon">👥</div><p>{{ t.noCustomers }}</p>
+      </div>
+      <div v-else class="card table-wrap">
+        <table>
+          <thead><tr>
+            <th class="clickable" @click="sortCustomers('name')">{{ t.name }} {{ custArrow('name') }}</th>
+            <th>{{ t.phone }}</th>
+            <th class="clickable" @click="sortCustomers('orders')">{{ t.orders }} {{ custArrow('orders') }}</th>
+            <th class="clickable" @click="sortCustomers('revenue')">{{ t.totalSpent }} {{ custArrow('revenue') }}</th>
+            <th class="clickable" @click="sortCustomers('last')">{{ t.lastOrder }} {{ custArrow('last') }}</th>
+            <th></th>
+          </tr></thead>
+          <tbody>
+            <tr v-for="c in customersList" :key="c.id" class="rowlink" @click="openCustomer(c.id)">
+              <td><span class="avatar sm cust">{{ c.name.slice(0, 1).toUpperCase() }}</span> <b>{{ c.name }}</b></td>
+              <td class="mono">{{ c.phone || '—' }}</td>
+              <td>{{ c.order_count }}</td>
+              <td><b>{{ money(c.revenue) }}</b></td>
+              <td>{{ c.last_order ? fmtDate(c.last_order) : '—' }}</td>
+              <td class="row-actions">
+                <button class="btn small" @click.stop="openCustomer(c.id)">{{ t.view }}</button>
+                <button v-if="isAdmin" class="btn small" @click.stop="openCustomerForm(c)">{{ t.edit }}</button>
+                <button v-if="isAdmin" class="btn small danger ghost" @click.stop="deleteCustomerRec(c)">{{ t.delete }}</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- customer detail modal -->
+      <div v-if="customerModal" class="overlay" @click.self="customerModal = null">
+        <div class="modal wide">
+          <div class="drawer-head">
+            <h2><span class="avatar sm cust">{{ customerModal.customer.name.slice(0, 1).toUpperCase() }}</span> {{ customerModal.customer.name }}</h2>
+            <button class="x" @click="customerModal = null">✕</button>
+          </div>
+          <div class="order-meta">
+            <span v-if="customerModal.customer.phone" class="mono">{{ customerModal.customer.phone }}</span>
+            <span v-if="customerModal.customer.address">{{ customerModal.customer.address }}</span>
+            <span v-if="customerModal.customer.notes" class="muted">{{ customerModal.customer.notes }}</span>
+          </div>
+          <div class="stat-row">
+            <div class="card stat mini"><div><div class="stat-num">{{ customerModal.stats.order_count }}</div><div class="stat-label">{{ t.orderCount }}</div></div></div>
+            <div class="card stat mini"><div><div class="stat-num">{{ money(customerModal.stats.revenue) }}</div><div class="stat-label">{{ t.totalSpent }}</div></div></div>
+            <div class="card stat mini"><div><div class="stat-num">{{ money(customerModal.stats.avg_order) }}</div><div class="stat-label">{{ t.avgOrder }}</div></div></div>
+            <div class="card stat mini"><div><div class="stat-num sm">{{ customerModal.stats.last_order ? fmtDate(customerModal.stats.last_order) : '—' }}</div><div class="stat-label">{{ t.lastOrder }}</div></div></div>
+          </div>
+          <template v-if="customerModal.topProducts.length">
+            <h3 class="section-h">{{ t.byProduct }}</h3>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>{{ t.name }}</th><th>{{ t.sku }}</th><th>{{ t.qty }}</th><th>{{ t.revenue }}</th></tr></thead>
+                <tbody><tr v-for="r in customerModal.topProducts" :key="r.sku">
+                  <td>{{ r.product }}</td><td class="mono">{{ r.sku }}</td><td>{{ r.qty }}</td><td><b>{{ money(r.revenue) }}</b></td>
+                </tr></tbody>
+              </table>
+            </div>
+          </template>
+          <h3 class="section-h">{{ t.orderHistory }}</h3>
+          <p v-if="!customerModal.orders.length" class="muted">{{ t.noOrders }}</p>
+          <div v-else class="table-wrap">
+            <table>
+              <thead><tr><th>{{ t.orderNo }}</th><th>{{ t.date }}</th><th v-if="isAdmin">{{ t.agent }}</th><th>{{ t.status }}</th><th>{{ t.items }}</th><th>{{ t.total }}</th></tr></thead>
+              <tbody>
+                <tr v-for="o in customerModal.orders" :key="o.id" class="rowlink" @click="openOrder(o.id)">
+                  <td class="mono">#{{ o.order_no }}</td>
+                  <td>{{ fmtDate(o.created_at) }}</td>
+                  <td v-if="isAdmin">{{ o.agent_name }}</td>
+                  <td><span :class="['badge', 'st-' + o.status]"><span class="dot"></span>{{ t[o.status] }}</span></td>
+                  <td>{{ o.item_count }}</td>
+                  <td><b>{{ money(o.total) }}</b></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- customer form modal -->
+      <div v-if="customerForm" class="overlay" @click.self="customerForm = null">
+        <div class="modal">
+          <div class="drawer-head"><h2>{{ customerForm.id ? t.edit : t.newCustomer }}</h2><button class="x" @click="customerForm = null">✕</button></div>
+          <label>{{ t.customerName }} *<input v-model="customerForm.name" required></label>
+          <label>{{ t.phone }}<input v-model="customerForm.phone"></label>
+          <label>{{ t.address }}<input v-model="customerForm.address"></label>
+          <label>{{ t.notes }}<textarea v-model="customerForm.notes" rows="2"></textarea></label>
+          <div class="btn-row">
+            <button class="btn primary" :disabled="busy" @click="saveCustomer">{{ t.save }}</button>
+            <button class="btn ghost" @click="customerForm = null">{{ t.cancel }}</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- order modal (global: opens from orders + customers pages) -->
+    <div v-if="orderModal" class="overlay" @click.self="orderModal = null">
+        <div class="modal wide">
+          <div class="drawer-head">
+            <h2>{{ orderEdit ? t.editOrder : t.orderNo + ' ' + orderModal.order_no }}</h2>
+            <button class="x" @click="orderModal = null">✕</button>
+          </div>
+          <div class="order-meta">
+            <span class="mono">#{{ orderModal.order_no }}</span>
+            <span>{{ fmtDate(orderModal.created_at) }}</span>
+            <span v-if="isAdmin">{{ t.agent }}: <b>{{ orderModal.agent_name }}</b></span>
+            <span v-if="isAdmin">
+              {{ t.status }}:
+              <select v-model="orderModal.status" @change="setOrderStatus(orderModal, orderModal.status)">
+                <option v-for="s in statuses" :key="s" :value="s">{{ t[s] }}</option>
+              </select>
+            </span>
+            <span v-else><span :class="['badge', 'st-' + orderModal.status]"><span class="dot"></span>{{ t[orderModal.status] }}</span></span>
+          </div>
+
+          <template v-if="!orderEdit">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>{{ t.name }}</th><th>{{ t.sku }}</th><th>{{ t.qty }}</th><th>{{ t.unitPrice }}</th><th>{{ t.discount }}</th><th>{{ t.lineTotal }}</th></tr></thead>
+                <tbody>
+                  <tr v-for="it in orderModal.items" :key="it.id">
+                    <td>{{ it.product_name }}</td><td class="mono">{{ it.sku }}</td><td>{{ it.qty }}</td>
+                    <td>{{ money(it.unit_price) }}</td><td>{{ it.discount_pct }}%</td><td>{{ money(it.line_total) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="grand">{{ t.grandTotal }}: <b>{{ money(orderModal.total) }}</b></div>
+            <p v-if="orderModal.customer_name || orderModal.customer_phone">
+              {{ t.customer }}: <b>{{ orderModal.customer_name }}</b> {{ orderModal.customer_phone }}
+            </p>
+            <p v-if="orderModal.notes" class="muted">{{ orderModal.notes }}</p>
+            <div class="btn-row">
+              <button v-if="canEditOrder(orderModal)" class="btn primary" @click="startOrderEdit">{{ t.edit }}</button>
+              <button v-if="canCancelOrder(orderModal)" class="btn danger" @click="cancelOrder(orderModal)">{{ t.cancelOrder }}</button>
+              <button v-if="isAdmin" class="btn danger ghost" @click="deleteOrder(orderModal)">{{ t.delete }}</button>
+            </div>
+          </template>
+
+          <template v-else>
+            <div v-for="(it, i) in editItems" :key="i" class="cart-line">
+              <div class="cart-line-top"><b>{{ it.name }}</b><button class="x small" @click="editItems.splice(i, 1)">✕</button></div>
+              <div class="cart-line-fields">
+                <label>{{ t.qty }}<input type="number" min="1" v-model.number="it.qty"></label>
+                <label>{{ t.unitPrice }}<input type="number" min="0" step="0.01" v-model.number="it.unit_price"></label>
+                <label>{{ t.discount }}<input type="number" min="0" max="100" step="0.5" v-model.number="it.discount_pct"></label>
+              </div>
+              <div class="cart-line-total">{{ t.lineTotal }}: <b>{{ money(lineTotal(it)) }}</b></div>
+            </div>
+            <div class="add-item-row">
+              <input v-model="itemSearch" :placeholder="t.selectProduct + '...'" @input="debouncedItemSearch">
+            </div>
+            <div v-if="itemResults.length" class="item-results">
+              <button v-for="p in itemResults" :key="p.id" class="item-result" @click="addEditItem(p)">
+                <span class="mono">{{ p.sku }}</span> {{ p.name }}
+                <span class="muted">({{ money(p.price) }} · {{ t.stockShort }} {{ p.stock }})</span>
+              </button>
+            </div>
+            <div class="grand">{{ t.grandTotal }}: <b>{{ money(editItems.reduce((s, it) => s + lineTotal(it), 0)) }}</b></div>
+            <label>{{ t.customerName }}<input v-model="orderModal.customer_name"></label>
+            <label>{{ t.customerPhone }}<input v-model="orderModal.customer_phone"></label>
+            <label>{{ t.notes }}<textarea v-model="orderModal.notes" rows="2"></textarea></label>
+            <div class="btn-row">
+              <button class="btn primary" :disabled="busy || !editItems.length" @click="saveOrderEdit">{{ t.save }}</button>
+              <button class="btn ghost" @click="orderEdit = false">{{ t.cancel }}</button>
+            </div>
+          </template>
+        </div>
+    </div>
+
+    <!-- ============ REPORTS ============ -->
+    <main v-if="view === 'reports'" class="page">
+      <div class="filter-bar card-flat">
+        <input type="date" v-model="rf.from" @change="loadReport" :title="t.from">
+        <input type="date" v-model="rf.to" @change="loadReport" :title="t.to">
+        <select v-if="isAdmin" v-model="rf.agent_id" @change="loadReport">
+          <option value="">{{ t.allAgents }}</option>
+          <option v-for="a in agents" :key="a.id" :value="a.id">{{ a.name }}</option>
+        </select>
+        <span class="grow"></span>
+        <button class="btn ghost" @click="exportOrdersReport">⬇ {{ t.exportExcel }}</button>
+      </div>
+
+      <template v-if="report">
+        <div class="stat-row">
+          <div class="card stat">
+            <div class="stat-ico rev"><svg viewBox="0 0 24 24"><path d="M12 2v20M17 6H10a3 3 0 000 6h4a3 3 0 010 6H6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div><div class="stat-num">{{ money(report.totals.revenue) }}</div><div class="stat-label">{{ t.revenue }}</div></div>
+          </div>
+          <div class="card stat">
+            <div class="stat-ico ord"><svg viewBox="0 0 24 24"><path d="M6 3h12a1 1 0 011 1v17l-3-2-3 2-3-2-3 2V4a1 1 0 011-1z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
+            <div><div class="stat-num">{{ report.totals.order_count }}</div><div class="stat-label">{{ t.orderCount }}</div></div>
+          </div>
+          <div class="card stat">
+            <div class="stat-ico avg"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div><div class="stat-num">{{ money(report.totals.avg_order) }}</div><div class="stat-label">{{ t.avgOrder }}</div></div>
+          </div>
+        </div>
+
+        <div class="report-grid">
+          <div v-if="report.byAgent.length" class="card rep">
+            <h3>{{ t.byAgent }}</h3>
+            <table><thead><tr><th>{{ t.agent }}</th><th>{{ t.orderCount }}</th><th>{{ t.revenue }}</th></tr></thead>
+            <tbody><tr v-for="r in report.byAgent" :key="r.agent"><td>{{ r.agent }}</td><td>{{ r.n }}</td><td><b>{{ money(r.revenue) }}</b></td></tr></tbody></table>
+          </div>
+          <div class="card rep">
+            <h3>{{ t.byProduct }}</h3>
+            <table><thead><tr><th>{{ t.name }}</th><th>{{ t.qty }}</th><th>{{ t.revenue }}</th></tr></thead>
+            <tbody><tr v-for="r in report.byProduct" :key="r.sku"><td>{{ r.product }}</td><td>{{ r.qty }}</td><td><b>{{ money(r.revenue) }}</b></td></tr></tbody></table>
+          </div>
+          <div v-if="report.byCustomer && report.byCustomer.length" class="card rep">
+            <h3>{{ t.byCustomer }}</h3>
+            <table><thead><tr><th>{{ t.customer }}</th><th>{{ t.orderCount }}</th><th>{{ t.revenue }}</th></tr></thead>
+            <tbody><tr v-for="(r, i) in report.byCustomer" :key="i"><td>{{ r.customer }}</td><td>{{ r.n }}</td><td><b>{{ money(r.revenue) }}</b></td></tr></tbody></table>
+          </div>
+          <div class="card rep">
+            <h3>{{ t.byStatus }}</h3>
+            <table><tbody><tr v-for="r in report.byStatus" :key="r.status">
+              <td><span :class="['badge', 'st-' + r.status]"><span class="dot"></span>{{ t[r.status] }}</span></td><td>{{ r.n }}</td><td><b>{{ money(r.revenue) }}</b></td>
+            </tr></tbody></table>
+          </div>
+          <div class="card rep">
+            <h3>{{ t.byDay }}</h3>
+            <div class="bars">
+              <div v-for="d in report.byDay" :key="d.day" class="bar-row">
+                <span class="bar-label">{{ d.day.slice(5) }}</span>
+                <div class="bar-track"><div class="bar-fill" :style="{ width: barWidth(d.revenue) }"></div></div>
+                <span class="bar-val">{{ money(d.revenue) }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </template>
+    </main>
+
+    <!-- ============ ADMIN ============ -->
+    <main v-if="view === 'admin' && isAdmin" class="page">
+      <nav class="subtabs">
+        <button :class="{ on: adminTab === 'products' }" @click="adminTab = 'products'">{{ t.manageProducts }}</button>
+        <button :class="{ on: adminTab === 'categories' }" @click="adminTab = 'categories'">{{ t.manageCategories }}</button>
+        <button :class="{ on: adminTab === 'agents' }" @click="adminTab = 'agents'">{{ t.manageAgents }}</button>
+        <button :class="{ on: adminTab === 'excel' }" @click="adminTab = 'excel'">{{ t.excel }}</button>
+        <button :class="{ on: adminTab === 'history' }" @click="adminTab = 'history'; loadActions()">{{ t.history }}</button>
+      </nav>
+
+      <!-- admin: products -->
+      <template v-if="adminTab === 'products'">
+        <div class="filter-bar card-flat">
+          <div class="search-box grow">
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" fill="none" stroke="currentColor" stroke-width="2"/><path d="M20 20l-3.5-3.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+            <input v-model="pf.search" :placeholder="t.search" @input="debouncedAdminProducts">
+          </div>
+          <button class="btn primary" @click="openProductForm()">+ {{ t.newProduct }}</button>
+        </div>
+        <div class="card table-wrap">
+          <table>
+            <thead><tr><th></th><th>{{ t.sku }}</th><th>{{ t.name }}</th><th>{{ t.category }}</th>
+              <th>{{ t.price }}</th><th>{{ t.cost }}</th><th>{{ t.stock }}</th><th>{{ t.discount }}</th><th>{{ t.status }}</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="p in adminProducts" :key="p.id" :class="{ dim: !p.active }">
+                <td class="thumb-cell"><img v-if="p.image" :src="p.image" class="thumb"><span v-else class="thumb ph">▦</span></td>
+                <td class="mono">{{ p.sku }}</td><td>{{ p.name }}</td><td>{{ p.category_name || '—' }}</td>
+                <td>{{ money(p.price) }}</td><td>{{ money(p.cost) }}</td>
+                <td :class="p.stock <= 0 ? 'err' : ''">{{ p.stock }}</td><td>{{ p.discount_pct }}%</td>
+                <td>{{ p.active ? t.active : t.inactive }}</td>
+                <td class="row-actions">
+                  <button class="btn small" @click="openProductForm(p)">{{ t.edit }}</button>
+                  <button class="btn small danger ghost" @click="deleteProduct(p)">{{ t.delete }}</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div v-if="adminProducts.length < adminTotal" class="load-more">
+          <button class="btn" @click="loadAdminProducts(true)">{{ t.showMore }} ({{ adminProducts.length }} / {{ adminTotal }})</button>
+        </div>
+      </template>
+
+      <!-- admin: categories (tree) -->
+      <template v-if="adminTab === 'categories'">
+        <form class="filter-bar card-flat" @submit.prevent="addCategory">
+          <input class="grow" v-model="newCatName" :placeholder="t.categoryName" required>
+          <button class="btn primary">+ {{ t.newCategory }}</button>
+        </form>
+        <div class="card cat-tree">
+          <div v-for="c in categoryTree" :key="c.id" class="cat-group">
+            <div class="cat-row top">
+              <svg viewBox="0 0 24 24" class="cat-ico"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              <input class="inline-edit" v-model="c.name" @change="renameCategory(c)">
+              <button class="btn small ghost" @click="addingSubFor = addingSubFor === c.id ? null : c.id; newSubName = ''">+ {{ t.subcategory }}</button>
+              <button class="btn small danger ghost" @click="deleteCategory(c)">{{ t.delete }}</button>
+            </div>
+            <form v-if="addingSubFor === c.id" class="cat-row sub subform" @submit.prevent="addSubcategory(c)">
+              <span class="tree-line"></span>
+              <input v-model="newSubName" :placeholder="t.subcategoryName" required autofocus>
+              <button class="btn small primary">{{ t.add }}</button>
+            </form>
+            <div v-for="s in c.children" :key="s.id" class="cat-row sub">
+              <span class="tree-line"></span>
+              <input class="inline-edit" v-model="s.name" @change="renameCategory(s)">
+              <button class="btn small danger ghost" @click="deleteCategory(s)">{{ t.delete }}</button>
+            </div>
+          </div>
+          <p v-if="!categoryTree.length" class="muted center">{{ t.noResults }}</p>
+        </div>
+      </template>
+
+      <!-- admin: agents -->
+      <template v-if="adminTab === 'agents'">
+        <div class="filter-bar card-flat">
+          <span class="grow"></span>
+          <button class="btn primary" @click="openUserForm()">+ {{ t.newAgent }}</button>
+        </div>
+        <div class="card table-wrap">
+          <table>
+            <thead><tr><th>{{ t.fullName }}</th><th>{{ t.username }}</th><th>{{ t.phone }}</th><th>{{ t.role }}</th><th>{{ t.status }}</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="u in users" :key="u.id" :class="{ dim: !u.active }">
+                <td><span class="avatar sm">{{ u.name.slice(0, 1).toUpperCase() }}</span> {{ u.name }}</td>
+                <td class="mono">{{ u.username }}</td><td>{{ u.phone || '—' }}</td>
+                <td><span :class="['badge', u.role === 'admin' ? 'role-admin' : 'role-agent']">{{ u.role === 'admin' ? t.roleAdmin : t.roleAgent }}</span></td>
+                <td>{{ u.active ? t.active : t.inactive }}</td>
+                <td class="row-actions"><button class="btn small" @click="openUserForm(u)">{{ t.edit }}</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- admin: excel -->
+      <template v-if="adminTab === 'excel'">
+        <div class="card excel-card">
+          <h3>{{ t.manageProducts }}</h3>
+          <p class="muted">{{ t.productsExcelHint }}</p>
+          <div class="btn-row">
+            <a class="btn" href="/api/excel/products/export">⬇ {{ t.exportExcel }}</a>
+            <a class="btn ghost" href="/api/excel/products/template">⬇ {{ t.downloadTemplate }}</a>
+            <label class="btn primary file-btn">⬆ {{ t.importExcel }}
+              <input type="file" accept=".xlsx,.xlsm" @change="importProducts" hidden>
+            </label>
+          </div>
+          <p v-if="importMsg" class="ok">{{ importMsg }}</p>
+        </div>
+        <div class="card excel-card">
+          <h3>{{ t.orders }}</h3>
+          <p class="muted">{{ t.ordersExcelHint }}</p>
+          <div class="btn-row">
+            <input type="date" v-model="of.from" :title="t.from">
+            <input type="date" v-model="of.to" :title="t.to">
+            <button class="btn" @click="exportOrders">⬇ {{ t.exportExcel }}</button>
+          </div>
+        </div>
+      </template>
+
+      <!-- admin: history -->
+      <template v-if="adminTab === 'history'">
+        <div class="card table-wrap">
+          <table>
+            <thead><tr><th>{{ t.date }}</th><th>{{ t.agent }}</th><th>{{ t.actionType }}</th><th>{{ t.description }}</th><th></th></tr></thead>
+            <tbody>
+              <tr v-for="a in actionLog" :key="a.id" :class="{ dim: a.undone }">
+                <td class="mono">{{ fmtDate(a.created_at) }}</td>
+                <td>{{ a.user_name }}</td>
+                <td><span class="badge">{{ actionLabel(a) }}</span></td>
+                <td>{{ a.description }}</td>
+                <td class="row-actions">
+                  <span v-if="a.undone" class="muted">{{ t.undone }}</span>
+                  <button v-else-if="a.undoable" class="btn small" :disabled="busy" @click="undoAction(a)">↩ {{ t.undo }}</button>
+                </td>
+              </tr>
+              <tr v-if="!actionLog.length"><td colspan="5" class="muted">{{ t.noResults }}</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </template>
+
+      <!-- product form modal -->
+      <div v-if="productForm" class="overlay" @click.self="productForm = null">
+        <div class="modal">
+          <div class="drawer-head"><h2>{{ productForm.id ? t.editProduct : t.newProduct }}</h2><button class="x" @click="productForm = null">✕</button></div>
+          <div class="form-grid">
+            <label>{{ t.sku }} *<input v-model="productForm.sku" required></label>
+            <label>{{ t.name }} *<input v-model="productForm.name" required></label>
+            <label class="span2">{{ t.description }}<textarea v-model="productForm.description" rows="2"></textarea></label>
+            <label>{{ t.category }}
+              <select v-model="productForm.category_id">
+                <option :value="null">—</option>
+                <option v-for="c in categoryOptions" :key="c.id" :value="c.id">{{ (c.depth ? '   › ' : '') + c.label }}</option>
+              </select>
+            </label>
+            <label>{{ t.barcode }}<input v-model="productForm.barcode"></label>
+            <label>{{ t.price }}<input type="number" min="0" step="0.01" v-model.number="productForm.price"></label>
+            <label>{{ t.cost }}<input type="number" min="0" step="0.01" v-model.number="productForm.cost"></label>
+            <label>{{ t.stock }}<input type="number" min="0" v-model.number="productForm.stock"></label>
+            <label>{{ t.defaultDiscount }}<input type="number" min="0" max="100" step="0.5" v-model.number="productForm.discount_pct"></label>
+            <label>{{ t.status }}
+              <select v-model.number="productForm.active"><option :value="1">{{ t.active }}</option><option :value="0">{{ t.inactive }}</option></select>
+            </label>
+            <div class="span2 img-row">
+              <img v-if="productForm.image" :src="productForm.image" class="thumb big">
+              <label class="btn file-btn" v-if="productForm.id">⬆ {{ t.uploadImage }}
+                <input type="file" accept="image/*" @change="uploadImage" hidden>
+              </label>
+              <span v-else class="muted">{{ t.image }}: {{ t.save }} → {{ t.uploadImage }}</span>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" :disabled="busy" @click="saveProduct">{{ t.save }}</button>
+            <button class="btn ghost" @click="productForm = null">{{ t.cancel }}</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- user form modal -->
+      <div v-if="userForm" class="overlay" @click.self="userForm = null">
+        <div class="modal">
+          <div class="drawer-head"><h2>{{ userForm.id ? t.edit : t.newAgent }}</h2><button class="x" @click="userForm = null">✕</button></div>
+          <div class="form-grid">
+            <label>{{ t.fullName }} *<input v-model="userForm.name" required></label>
+            <label>{{ t.username }} *<input v-model="userForm.username" :disabled="!!userForm.id" required></label>
+            <label>{{ t.phone }}<input v-model="userForm.phone"></label>
+            <label>{{ t.role }}
+              <select v-model="userForm.role"><option value="agent">{{ t.roleAgent }}</option><option value="admin">{{ t.roleAdmin }}</option></select>
+            </label>
+            <label class="span2">{{ userForm.id ? t.resetPassword : t.password + ' *' }}
+              <input type="password" v-model="userForm.password" autocomplete="new-password">
+            </label>
+            <label v-if="userForm.id">{{ t.status }}
+              <select v-model.number="userForm.active"><option :value="1">{{ t.active }}</option><option :value="0">{{ t.inactive }}</option></select>
+            </label>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" :disabled="busy" @click="saveUser">{{ t.save }}</button>
+            <button class="btn ghost" @click="userForm = null">{{ t.cancel }}</button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- change password modal -->
+    <div v-if="showPwd" class="overlay" @click.self="showPwd = false">
+      <div class="modal">
+        <div class="drawer-head"><h2>{{ t.changePassword }}</h2><button class="x" @click="showPwd = false">✕</button></div>
+        <label>{{ t.currentPassword }}<input type="password" v-model="pwdForm.current"></label>
+        <label>{{ t.newPassword }}<input type="password" v-model="pwdForm.next"></label>
+        <div class="btn-row">
+          <button class="btn primary" :disabled="busy" @click="changePassword">{{ t.save }}</button>
+          <button class="btn ghost" @click="showPwd = false">{{ t.cancel }}</button>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- toast -->
+  <div v-if="toast" :class="['toast', toast.kind]">{{ toast.msg }}</div>
+</div>
+
+<script src="/vendor/vue.global.prod.js"></script>
+<script src="/js/helpers.js"></script>
+<script src="/js/i18n/en.js"></script>
+<script src="/js/i18n/ar.js"></script>
+<script src="/js/i18n/he.js"></script>
+<script src="/js/mixins/catalog.js"></script>
+<script src="/js/mixins/orders.js"></script>
+<script src="/js/mixins/customers.js"></script>
+<script src="/js/mixins/reports.js"></script>
+<script src="/js/mixins/admin.js"></script>
+<script src="/js/app.js"></script>
+</body>
+</html>

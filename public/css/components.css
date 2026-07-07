@@ -1,0 +1,93 @@
+/* Modals, tables, forms and the other pieces shared by several views. */
+
+/* ---- overlay / drawer / modal ---- */
+.overlay {
+  position: fixed; inset: 0; z-index: 40;
+  background: rgba(15,23,42,.5);
+  backdrop-filter: blur(3px);
+  display: grid; place-items: center;
+  padding: 1rem;
+  animation: fade-in .15s ease-out;
+}
+@keyframes fade-in { from { opacity: 0; } }
+.drawer, .modal {
+  background: var(--card); border-radius: 18px;
+  padding: 1.4rem; width: 100%; max-width: 500px;
+  max-height: 92vh; overflow-y: auto;
+  box-shadow: var(--shadow-lg);
+  animation: pop-in .18s ease-out;
+}
+@keyframes pop-in { from { opacity: 0; transform: translateY(10px) scale(.985); } }
+.modal.wide { max-width: 760px; }
+.drawer-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+.drawer-head h2 { margin: 0; font-size: 1.1rem; font-weight: 700; }
+
+.btn-row { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: .9rem; align-items: center; }
+
+/* ---- tables ---- */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: .65rem .85rem; text-align: start; border-bottom: 1px solid var(--border); white-space: nowrap; }
+th { font-size: .72rem; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--faint); background: #fafbfe; position: sticky; top: 0; }
+tbody tr:last-child td { border-bottom: none; }
+tbody tr { transition: background .1s; }
+tbody tr:hover { background: #f7f8fc; }
+tr.rowlink { cursor: pointer; }
+th.clickable { cursor: pointer; user-select: none; }
+th.clickable:hover { color: var(--primary); }
+.row-actions { display: flex; gap: .3rem; }
+.thumb { width: 38px; height: 38px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border); }
+.thumb.ph { display: inline-grid; place-items: center; color: #c2c8dd; background: #f4f5fa; font-size: 1.1rem; }
+.thumb.big { width: 92px; height: 92px; border-radius: 12px; }
+.thumb-cell { width: 50px; }
+.inline-edit { border-color: transparent; background: transparent; font-weight: 500; }
+.inline-edit:hover { border-color: var(--border); background: #fff; }
+.inline-edit:focus { background: #fff; }
+
+/* ---- status / role badges ---- */
+.badge.st-pending { background: #fef3c7; color: #92400e; }
+.badge.st-approved { background: #e0e7ff; color: #3730a3; }
+.badge.st-delivered { background: #dcfce7; color: #166534; }
+.badge.st-cancelled { background: #fee2e2; color: #991b1b; }
+.badge.role-admin { background: var(--primary-soft); color: var(--primary); }
+.badge.role-agent { background: #f1f5f9; color: var(--muted); }
+
+/* card version of the orders list, shown instead of the table on phones */
+.orders-cards { display: none; }
+.order-card { padding: .75rem .9rem; cursor: pointer; }
+.order-card-top { display: flex; justify-content: space-between; align-items: center; }
+.order-card-mid { display: flex; justify-content: space-between; align-items: baseline; margin-top: .35rem; font-weight: 500; }
+.order-card-mid b { font-size: 1.05rem; }
+.order-card-sub { font-size: .78rem; margin-top: .2rem; }
+
+.order-meta { display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; font-size: .88rem; color: var(--muted); }
+.order-meta b { color: var(--text); }
+.order-meta select { width: auto; padding: .3rem .5rem; }
+
+/* ---- categories tree ---- */
+.cat-tree { padding: .6rem .9rem; }
+.cat-group { border-bottom: 1px solid var(--border); padding: .35rem 0; }
+.cat-group:last-child { border-bottom: none; }
+.cat-row { display: flex; align-items: center; gap: .5rem; padding: .25rem 0; }
+.cat-row input { max-width: 320px; }
+.cat-row.top .inline-edit { font-weight: 600; }
+.cat-ico { width: 18px; height: 18px; color: var(--primary); flex-shrink: 0; }
+.cat-row.sub { padding-inline-start: .35rem; }
+.tree-line {
+  width: 22px; height: 20px; flex-shrink: 0;
+  border-inline-start: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  border-end-start-radius: 8px;
+  margin-inline-start: 7px;
+  margin-top: -10px;
+}
+.subform input { background: var(--primary-soft); border-color: #c7d2fe; }
+
+/* ---- forms ---- */
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: .3rem .8rem; }
+.form-grid .span2 { grid-column: span 2; }
+.img-row { display: flex; align-items: center; gap: 1rem; margin: .5rem 0; }
+
+.excel-card { padding: 1.3rem 1.4rem; margin-bottom: 1rem; }
+.excel-card h3 { font-size: 1rem; font-weight: 700; }
+.excel-card .btn-row input[type="date"] { width: auto; }
